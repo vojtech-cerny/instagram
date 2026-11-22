@@ -85,7 +85,7 @@ h1.x1lliihq {
     display: none;
 }
 /* Message bubble */
-.x5slmwz:not([role="button"]) {
+.x5slmwz:not([role="button"]):not([data-pagelet="IGDInboxThreadListScrollableAreaPagelet"] *) {
     background-clip: padding-box;
     background-image: linear-gradient(180deg, #d102c4 0%, #5554f8 100%);
     background-position: 0;
