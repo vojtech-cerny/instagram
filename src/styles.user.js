@@ -244,7 +244,7 @@ div[data-pagelet="IGDComposerForCannes"] {
 }
 
 div[data-pagelet="IGDComposerForCannes"] {
-  background: linear-gradient(180deg,rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0) 49%, rgba(255, 255, 255, 1) 50%, rgba(255, 255, 255, 1) 100%);;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0) 49%, rgb(var(--ig-primary-background)) 50%, rgb(var(--ig-primary-background)));
 }
 
 div[data-pagelet="IGDComposerForCannes"] div {
@@ -252,9 +252,13 @@ div[data-pagelet="IGDComposerForCannes"] div {
   border: none;
 }
 
-div[data-pagelet="IGDComposerForCannes"] .xshg46c {
+div[data-pagelet="IGDComposerForCannes"] .xshg46c { 
   background-color: rgb(var(--ig-incoming-message-bubble));
-   box-shadow: inset 0 0 3px 1px rgba(0, 0, 0, 0.025);
+}
+
+/* === UNIVERSAL: Add inset shadow === */
+div[data-pagelet="IGDComposerForCannes"] .xshg46c, [id^="double_tappable_id"] > div > div > div, .xsnw5ke {
+  box-shadow: inset 0 0 3px 1px rgba(var(--ig-primary-text), 0.025);
 }
 
 div[data-pagelet="IGDMessagesList"] > div > div {
