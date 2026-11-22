@@ -2,7 +2,7 @@
 // @name         Hermit bundle
 // @description  Auto-generated bundle of 11 script(s). Do not edit by hand.
 // ==/UserScript==
-// Content hash: ab49619387
+// Content hash: 95d13a22ef
 // Sources:
 //   - src/block-recommended.user.js
 //   - src/direct-layout.user.js
@@ -1144,7 +1144,7 @@ h1.x1lliihq {
     display: none;
 }
 /* Message bubble */
-.x5slmwz:not([role="button"]) {
+.x5slmwz:not([role="button"]):not([data-pagelet="IGDInboxThreadListScrollableAreaPagelet"] *) {
     background-clip: padding-box;
     background-image: linear-gradient(180deg, #d102c4 0%, #5554f8 100%);
     background-position: 0;
@@ -1303,7 +1303,7 @@ div[data-pagelet="IGDComposerForCannes"] {
 }
 
 div[data-pagelet="IGDComposerForCannes"] {
-  background: linear-gradient(180deg,rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0) 49%, rgba(255, 255, 255, 1) 50%, rgba(255, 255, 255, 1) 100%);;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0) 49%, rgb(var(--ig-primary-background)) 50%, rgb(var(--ig-primary-background)));
 }
 
 div[data-pagelet="IGDComposerForCannes"] div {
@@ -1311,13 +1311,27 @@ div[data-pagelet="IGDComposerForCannes"] div {
   border: none;
 }
 
-div[data-pagelet="IGDComposerForCannes"] .xshg46c {
+div[data-pagelet="IGDComposerForCannes"] .xshg46c { 
   background-color: rgb(var(--ig-incoming-message-bubble));
-   box-shadow: inset 0 0 3px 1px rgba(0, 0, 0, 0.025);
+}
+
+/* === UNIVERSAL: Add inset shadow === */
+div[data-pagelet="IGDComposerForCannes"] .xshg46c, [id^="double_tappable_id"] > div > div > div, .xsnw5ke {
+  box-shadow: inset 0 0 3px 1px rgba(var(--ig-primary-text), 0.025);
 }
 
 div[data-pagelet="IGDMessagesList"] > div > div {
   margin-bottom: 77.4px;
+}
+
+/* === DIRECT INBOX: Dont crop harshly shadows in notes === */
+div[data-pagelet="IGDInboxThreadListScrollableAreaPagelet"] > div:first-child {
+  padding-inline-end: 0;
+  margin-inline-start: -1rem;
+}
+
+div[data-pagelet="IGDInboxThreadListScrollableAreaPagelet"] > div:first-child > div > div {
+  padding: 1rem
 }
 `
 
