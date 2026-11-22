@@ -1,0 +1,6 @@
+{
+  "name": "Hermit bundle",
+  "output": "dist/hermit.user.js",
+  "localDir": "src",
+  "remote": []
+}

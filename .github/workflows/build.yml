@@ -1,0 +1,45 @@
+name: Build Hermit bundle
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "sources.json"
+      - "scripts/**"
+  # Gists don't trigger pushes, so re-check any remote sources periodically.
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-bundle
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build bundle
+        run: node scripts/build.mjs
+
+      - name: Commit bundle if it changed
+        run: |
+          if [ -z "$(git status --porcelain dist)" ]; then
+            echo "Bundle unchanged."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add dist
+          git commit -m "build: update hermit bundle"
+          git push
