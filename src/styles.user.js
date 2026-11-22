@@ -234,6 +234,32 @@ a .x1lliihq.x193iq5w.x6ikm8r.x10wlt62.xlyipyv.xuxw1ft > div > span {
 label .html-div.xdj266r.xat24cr.x1lziwak.xexx8yu.xyri2b.x18d9i69.x1c1uobl.x9f619.xjbqb8w.x78zum5.x15mokao.x1ga7v0g.x16uus16.xbiv7yw.x2fvf9.x10l6tqk.x1ey2m1c.x13vifvy.xtijo5x.x1plvlek.xryxfnj.x1c4vz4f.x2lah0s.xdt5ytf.xqjyukv.x6s0dn4.x1oa3qoh.xl56j7k {
     margin-right: 8px;
 }
+
+/* === DIRECT CHAT: Input design === */
+
+div[data-pagelet="IGDComposerForCannes"] {
+  position: fixed;
+  bottom: 0;
+  width: 100vw;
+}
+
+div[data-pagelet="IGDComposerForCannes"] {
+  background: linear-gradient(180deg,rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0) 49%, rgba(255, 255, 255, 1) 50%, rgba(255, 255, 255, 1) 100%);;
+}
+
+div[data-pagelet="IGDComposerForCannes"] div {
+  background-color: transparent;
+  border: none;
+}
+
+div[data-pagelet="IGDComposerForCannes"] .xshg46c {
+  background-color: rgb(var(--ig-incoming-message-bubble));
+   box-shadow: inset 0 0 3px 1px rgba(0, 0, 0, 0.025);
+}
+
+div[data-pagelet="IGDMessagesList"] > div > div {
+  margin-bottom: 77.4px;
+}
 `
 
 ;(function () {
