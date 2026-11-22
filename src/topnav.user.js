@@ -2,71 +2,114 @@
 // @name  topnav
 // ==/UserScript==
 
-(function() {
-    'use strict';
+(function () {
+  'use strict';
 
-    let navbar = null;
-    let navHeight = 0;
-    let aktualniPosunY = 0;
-    let posledniPoziceScrollu = window.scrollY || document.documentElement.scrollTop;
+  const SELECTOR = 'nav header';
 
-    // Aplikuje fixní styly na nalezený element
-    function nastavitListu(element) {
-        navbar = element;
-        navbar.style.position = 'fixed';
-        navbar.style.top = '0';
-        navbar.style.width = '100%';
-        navbar.style.transition = 'none'; // KOUZLO: Vypínáme animaci!
-        navbar.style.zIndex = '999999';
+  let navbar = null;
+  let navHeight = 0;
+  let offset = 0;          // current translateY, always within [-navHeight, 0]
+  let applied = null;      // last value written to the DOM (to skip redundant writes)
+  let lastScrollY = getScrollY();
+  let scrollQueued = false;
+  let lookupQueued = false;
 
-        navHeight = navbar.offsetHeight;
-        aktualniPosunY = 0; // Resetujeme posun pro novou stránku
-        navbar.style.transform = `translateY(0px)`;
+  function getScrollY() {
+    // Clamp at 0: iOS/Android overscroll bounce reports negative values,
+    // which would make the bar jitter at the top of the page.
+    return Math.max(0, window.scrollY || document.documentElement.scrollTop || 0);
+  }
 
-        console.log("Parťák v programování: Aktivuji pixel-perfect chytrou lištu na novém prvku!");
-    }
+  function render(y) {
+    if (y === applied) return;
+    applied = y;
+    navbar.style.transform = `translate3d(0, ${y}px, 0)`;
+  }
 
-    // Zkontroluje, zda SPA nepodvrhlo nový DOM element pro navigaci
-    function zkontrolovatDOM() {
-        const aktualniNav = document.querySelector('nav header');
+  // Keep navHeight up to date WITHOUT reading offsetHeight on every scroll
+  // (that forced a synchronous layout each time). ResizeObserver fires after
+  // layout has already happened, so it's free.
+  const resizeObserver = new ResizeObserver((entries) => {
+    const entry = entries[entries.length - 1];
+    navHeight = entry.borderBoxSize?.[0]?.blockSize ?? entry.contentRect.height;
+    offset = Math.max(-navHeight, Math.min(0, offset));
+    render(offset);
+  });
 
-        // Pokud jsme našli navigaci a je to JINÝ element než ten, co už sledujeme
-        if (aktualniNav && aktualniNav !== navbar) {
-            nastavitListu(aktualniNav);
-        }
-        // Pokud navigace úplně zmizela z DOMu
-        else if (navbar && !document.body.contains(navbar)) {
-            navbar = null;
-        }
-    }
+  function attach(el) {
+    if (navbar) resizeObserver.unobserve(navbar);
+    navbar = el;
 
-    // 1. Zavedeme MutationObserver. Ten hlídá změny v Reactu bez ohledu na pushState/hydrataci.
-    const observer = new MutationObserver(() => {
-        zkontrolovatDOM();
-    });
+    const s = el.style;
+    s.position = 'fixed';
+    s.top = '0';
+    s.width = '100%';
+    s.transition = 'none';
+    s.zIndex = '999999';
+    s.willChange = 'transform'; // own compositor layer -> moves on the GPU
 
-    // Začneme sledovat celou stránku na jakékoliv překreslení DOMu
-    observer.observe(document.body, { childList: true, subtree: true });
+    navHeight = el.offsetHeight; // one-time read; ResizeObserver keeps it current afterwards
+    offset = 0;
+    applied = null;
+    lastScrollY = getScrollY(); // avoid a jump caused by a stale previous position
+    render(0);
 
-    // Provedeme první kontrolu ihned pro případ, že prvek už existuje
-    zkontrolovatDOM();
+    resizeObserver.observe(el);
+  }
 
-    // 2. Globální EventListener (zavěšený na window vydrží i přes změny stránek)
-    window.addEventListener('scroll', () => {
-        if (!navbar) return; // Pokud na dané stránce navigace není, neděláme nic
+  function detach() {
+    resizeObserver.unobserve(navbar);
+    navbar = null;
+  }
 
-        const aktualniPoziceScrollu = window.scrollY || document.documentElement.scrollTop;
-        const rozdilScrollu = aktualniPoziceScrollu - posledniPoziceScrollu;
+  // ---- finding the navbar (SPA can replace it at any time) -----------------
 
-        aktualniPosunY = aktualniPosunY - rozdilScrollu;
-        aktualniPosunY = Math.max(-navHeight, Math.min(0, aktualniPosunY));
+  function lookup() {
+    lookupQueued = false;
+    if (navbar && !navbar.isConnected) detach();
+    if (navbar) return;
 
-        navbar.style.transform = `translateY(${aktualniPosunY}px)`;
+    const el = document.querySelector(SELECTOR);
+    if (el) attach(el);
+  }
 
-        posledniPoziceScrollu = aktualniPoziceScrollu <= 0 ? 0 : aktualniPoziceScrollu;
+  // Only do real work when we have no navbar or the one we track was removed.
+  // While the navbar is alive, a mutation batch costs a single isConnected check
+  // instead of a querySelector over a huge, constantly changing DOM.
+  new MutationObserver(() => {
+    if (lookupQueued || navbar?.isConnected) return;
+    lookupQueued = true;
+    requestAnimationFrame(lookup);
+  }).observe(document.documentElement, { childList: true, subtree: true });
 
-        // Průběžně aktualizujeme výšku, kdyby se změnila
-        navHeight = navbar.offsetHeight;
-    }, { passive: true });
+  lookup();
 
+  // ---- scrolling ------------------------------------------------------------
+
+  // Scroll events are dispatched right before requestAnimationFrame callbacks in
+  // the same frame, so batching through rAF adds no latency, but guarantees at
+  // most one style write per frame.
+  function onFrame() {
+    scrollQueued = false;
+
+    const y = getScrollY();
+    const delta = y - lastScrollY;
+    lastScrollY = y;
+
+    if (!navbar || delta === 0) return;
+
+    offset = Math.max(-navHeight, Math.min(0, offset - delta));
+    render(offset);
+  }
+
+  window.addEventListener(
+    'scroll',
+    () => {
+      if (scrollQueued) return;
+      scrollQueued = true;
+      requestAnimationFrame(onFrame);
+    },
+    { passive: true }
+  );
 })();
