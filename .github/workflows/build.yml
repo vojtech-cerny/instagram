@@ -7,6 +7,8 @@ on:
       - "src/**"
       - "sources.json"
       - "scripts/**"
+      - "package.json"
+      - "package-lock.json"
   # Gists don't trigger pushes, so re-check any remote sources periodically.
   schedule:
     - cron: "17 */6 * * *"
@@ -28,6 +30,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Build bundle
         run: node scripts/build.mjs

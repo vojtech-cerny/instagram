@@ -14,7 +14,8 @@
  * Per-script @match/@include/@exclude are preserved as runtime guards,
  * and the bundle header gets the union of @match/@grant/@require/etc.
  *
- * Requires Node 18+ (built-in fetch). No dependencies.
+ * Also writes dist/hermit.min.user.js (esbuild: JS + CSS-in-template minification).
+ * Requires Node 18+ (built-in fetch). The only dependency is esbuild (for the minified file).
  */
 import { readFile, writeFile, readdir, mkdir } from "node:fs/promises";
 import { createHash } from "node:crypto";
@@ -176,47 +177,112 @@ const __bundleReady = (fn) =>
     : fn();
 `.trim();
 
-const parts = scripts.map((s) => {
-  const guard = buildGuard(s.meta);
-  const defer = bundleRunAt === "document-start" && s.runAt !== "document-start";
-  const label = JSON.stringify(s.label);
+/**
+ * Render the wrapped scripts. `bodyOf(script)` lets the minified build
+ * swap in a CSS-minified body without touching the readable build.
+ */
+function renderCore(bodyOf) {
+  const parts = scripts.map((s) => {
+    const guard = buildGuard(s.meta);
+    const defer = bundleRunAt === "document-start" && s.runAt !== "document-start";
+    const label = JSON.stringify(s.label);
 
-  // NOTE: the script body is deliberately NOT re-indented, so multi-line
-  // template literals (like the CSS in styles.user.js) stay byte-identical.
-  return [
-    `// ===== ${s.label}  (${s.id}) =====`,
-    `;(function () {`,
-    guard ? `  if (!${guard}) return;` : null,
-    `  const __main = function () {`,
-    `    try {`,
-    s.body,
-    `    } catch (e) { console.error("[bundle] " + ${label} + " failed:", e); }`,
-    `  };`,
-    defer ? `  __bundleReady(__main);` : `  __main();`,
-    `})();`,
-  ]
-    .filter((l) => l !== null)
-    .join("\n");
-});
+    // NOTE: the script body is deliberately NOT re-indented, so multi-line
+    // template literals (like the CSS in styles.user.js) stay byte-identical.
+    return [
+      `// ===== ${s.label}  (${s.id}) =====`,
+      `;(function () {`,
+      guard ? `  if (!${guard}) return;` : null,
+      `  const __main = function () {`,
+      `    try {`,
+      bodyOf(s),
+      `    } catch (e) { console.error("[bundle] " + ${label} + " failed:", e); }`,
+      `  };`,
+      defer ? `  __bundleReady(__main);` : `  __main();`,
+      `})();`,
+    ]
+      .filter((l) => l !== null)
+      .join("\n");
+  });
+  return `${runtime}\n\n${parts.join("\n\n")}\n`;
+}
 
-const core = `${runtime}\n\n${parts.join("\n\n")}\n`;
+const wrap = (core) => `;(function () {\n${core}})();\n`;
+const check = (code, name) => {
+  try {
+    new vm.Script(code, { filename: name });
+  } catch (e) {
+    fail(`Generated ${name} is invalid: ${e.message}`);
+  }
+};
+
+// ---------------------------------------------------------------- readable bundle
+
+const core = renderCore((s) => s.body);
 const hash = createHash("sha256").update(core).digest("hex").slice(0, 10);
 
-const output =
+const banner =
   headerText +
   `// Content hash: ${hash}\n` +
-  `// Sources:\n${scripts.map((s) => `//   - ${s.id}`).join("\n")}\n\n` +
-  `;(function () {\n${core}})();\n`;
+  `// Sources:\n${scripts.map((s) => `//   - ${s.id}`).join("\n")}\n\n`;
 
-// Final sanity check on the full bundle
-try {
-  new vm.Script(output, { filename: path.basename(OUTPUT) });
-} catch (e) {
-  fail(`Generated bundle is invalid: ${e.message}`);
-}
+const output = banner + wrap(core);
+check(output, path.basename(OUTPUT));
 
 await mkdir(path.dirname(OUTPUT), { recursive: true });
 await writeFile(OUTPUT, output);
 
 console.log(`✔ ${path.relative(ROOT, OUTPUT)}  (${(output.length / 1024).toFixed(1)} KB, hash ${hash})`);
 for (const s of scripts) console.log(`   • ${s.label}  ←  ${s.id}`);
+
+// ---------------------------------------------------------------- minified bundle
+
+if (config.minify !== false) {
+  let esbuild;
+  try {
+    esbuild = await import("esbuild");
+  } catch {
+    console.warn("⚠ esbuild not installed – skipping minified bundle (run `npm install`).");
+  }
+
+  if (esbuild) {
+    // Most of a styling script's weight is CSS inside a template literal, which a
+    // JS minifier leaves alone. Minify `const css = `...`` strings with esbuild's CSS
+    // minifier. Skipped (with a note) if the string uses ${} or backslashes.
+    const minifyCssString = (s) =>
+      s.body.replace(/(\bconst\s+css\s*=\s*`)([^`]*)(`)/g, (all, pre, css, post) => {
+        if (css.includes("${") || css.includes("\\")) {
+          console.warn(`⚠ ${s.id}: CSS string uses \${} or backslashes – left as-is in minified bundle.`);
+          return all;
+        }
+        try {
+          const out = esbuild.transformSync(css, {
+            loader: "css",
+            minify: true,
+            target: config.minifyCssTarget ?? "chrome80",
+          }).code.trim();
+          return pre + out + post;
+        } catch (e) {
+          console.warn(`⚠ ${s.id}: CSS minify failed (${e.message.split("\n")[0]}) – left as-is.`);
+          return all;
+        }
+      });
+
+    const minCore = esbuild.transformSync(wrap(renderCore(minifyCssString)), {
+      minify: true,
+      legalComments: "none",
+    }).code;
+
+    const MIN_OUTPUT = config.minOutput
+      ? path.join(ROOT, config.minOutput)
+      : OUTPUT.replace(/\.user\.js$/, ".min.user.js");
+    const minOut = banner + minCore;
+    check(minOut, path.basename(MIN_OUTPUT));
+
+    await writeFile(MIN_OUTPUT, minOut);
+    console.log(
+      `✔ ${path.relative(ROOT, MIN_OUTPUT)}  (${(minOut.length / 1024).toFixed(1)} KB, ` +
+        `${Math.round((1 - minOut.length / output.length) * 100)}% smaller)`,
+    );
+  }
+}
