@@ -260,6 +260,16 @@ div[data-pagelet="IGDComposerForCannes"] .xshg46c {
 div[data-pagelet="IGDMessagesList"] > div > div {
   margin-bottom: 77.4px;
 }
+
+/* === DIRECT INBOX: Dont crop harshly shadows in notes === */
+div[data-pagelet="IGDInboxThreadListScrollableAreaPagelet"] > div:first-child {
+  padding-inline-end: 0;
+  margin-inline-start: -1rem;
+}
+
+div[data-pagelet="IGDInboxThreadListScrollableAreaPagelet"] > div:first-child > div > div {
+  padding: 1rem
+}
 `
 
 ;(function () {
