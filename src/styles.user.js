@@ -187,9 +187,6 @@ img {
 body:has(#splash-screen) #moje-ig-lista-kontejner {
     visibility: hidden;
 }
-[id^="double_tappable_id"] [role="button"] {
-    pointer-events: none;
-}
 /* Fix animations on chat click in direct */
 [data-pagelet="IGDInboxThreadListScrollableAreaPagelet"] .xg6hnt2 {
     transform: scale(1) !important;
