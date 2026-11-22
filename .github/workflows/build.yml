@@ -2,7 +2,7 @@ name: Build Hermit bundle
 
 on:
   push:
-    branches: [main]
+    branches: [master]
     paths:
       - "src/**"
       - "sources.json"
