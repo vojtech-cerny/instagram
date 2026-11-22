@@ -266,12 +266,12 @@ div[data-pagelet="IGDMessagesList"] > div > div {
 }
 
 /* === DIRECT INBOX: Dont crop harshly shadows in notes === */
-div[data-pagelet="IGDInboxThreadListScrollableAreaPagelet"] > div:first-child {
+[data-pagelet="IGDInboxThreadListScrollableAreaPagelet"] > div > .x1c4vz4f.x2lah0s.xhjk10j.x6ikm8r.x10wlt62.xf7dkkf.xv54qhq {
   padding-inline-end: 0;
   margin-inline-start: -1rem;
 }
 
-div[data-pagelet="IGDInboxThreadListScrollableAreaPagelet"] > div:first-child > div > div {
+[data-pagelet="IGDInboxThreadListScrollableAreaPagelet"] > div > .x1c4vz4f.x2lah0s.xhjk10j.x6ikm8r.x10wlt62.xf7dkkf.xv54qhq > div > div {
   padding: 1rem
 }
 `
