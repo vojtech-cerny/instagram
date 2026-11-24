@@ -284,6 +284,11 @@ div[data-pagelet="IGDInboxHeaderOffMsys"] > div {
 div[data-pagelet="IGDInboxHeaderOffMsys"] div:has(span:empty) {
   margin-top: 0;
 }
+
+div.x1kmbdvd:has([aria-label="Pinned message icon"]) {
+  background-color: rgb(var(--ig-primary-background));
+  scale: 1 !important;
+}
 `
 
 ;(function () {
