@@ -247,7 +247,7 @@ div[data-pagelet="IGDComposerForCannes"] {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0) 49%, rgb(var(--ig-primary-background)) 50%, rgb(var(--ig-primary-background)));
 }
 
-div[data-pagelet="IGDComposerForCannes"] div {
+div[data-pagelet=IGDComposerForCannes] > div > div > div:last-child > * {
   background-color: transparent;
   border: none;
 }
