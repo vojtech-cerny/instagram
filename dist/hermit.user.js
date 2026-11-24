@@ -2,7 +2,7 @@
 // @name         Hermit bundle
 // @description  Auto-generated bundle of 10 script(s). Do not edit by hand.
 // ==/UserScript==
-// Content hash: b5ee8ac4ce
+// Content hash: bef61014fb
 // Sources:
 //   - src/block-recommended.user.js
 //   - src/direct-layout.user.js
@@ -1266,7 +1266,7 @@ div[data-pagelet="IGDComposerForCannes"] {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0) 49%, rgb(var(--ig-primary-background)) 50%, rgb(var(--ig-primary-background)));
 }
 
-div[data-pagelet="IGDComposerForCannes"] div {
+div[data-pagelet=IGDComposerForCannes] > div > div > div:last-child > * {
   background-color: transparent;
   border: none;
 }
@@ -1292,6 +1292,16 @@ div[data-pagelet="IGDMessagesList"] > div > div {
 
 [data-pagelet="IGDInboxThreadListScrollableAreaPagelet"] > div > .x1c4vz4f.x2lah0s.xhjk10j.x6ikm8r.x10wlt62.xf7dkkf.xv54qhq > div > div {
   padding: 1rem
+}
+
+/* === DIRECT INBOX: HEADER === */
+
+div[data-pagelet="IGDInboxHeaderOffMsys"] > div {
+  border: 0;
+}
+
+div[data-pagelet="IGDInboxHeaderOffMsys"] div:has(span:empty) {
+  margin-top: 0;
 }
 `
 
