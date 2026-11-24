@@ -274,6 +274,16 @@ div[data-pagelet="IGDMessagesList"] > div > div {
 [data-pagelet="IGDInboxThreadListScrollableAreaPagelet"] > div > .x1c4vz4f.x2lah0s.xhjk10j.x6ikm8r.x10wlt62.xf7dkkf.xv54qhq > div > div {
   padding: 1rem
 }
+
+/* === DIRECT INBOX: HEADER === */
+
+div[data-pagelet="IGDInboxHeaderOffMsys"] > div {
+  border: 0;
+}
+
+div[data-pagelet="IGDInboxHeaderOffMsys"] div:has(span:empty) {
+  margin-top: 0;
+}
 `
 
 ;(function () {
