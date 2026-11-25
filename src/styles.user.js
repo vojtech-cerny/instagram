@@ -325,6 +325,11 @@ article[data-interactable="|click|"]:has(a[href*="/reel/"]) > div > div:first-ch
   background: linear-gradient(0deg,rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.65) 100%);
   height: 6rem;
 }
+
+/* Remove follow(ed) button in posts header */
+article header ._aar2:has(button) {
+  display: none;
+}
 `
 
 ;(function () {
