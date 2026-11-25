@@ -254,6 +254,7 @@ div[data-pagelet=IGDComposerForCannes] > div > div > div:last-child > * {
 
 div[data-pagelet="IGDComposerForCannes"] .xshg46c { 
   background-color: rgb(var(--ig-incoming-message-bubble));
+  border-color: transparent;
 }
 
 /* === UNIVERSAL: Add inset shadow === */
