@@ -290,6 +290,41 @@ div.x1kmbdvd:has([aria-label="Pinned message icon"]) {
   background-color: rgb(var(--ig-primary-background));
   scale: 1 !important;
 }
+
+/* Fill reel full width */
+article[data-interactable="|click|"]:has(a[href*="/reel/"]) > div > div:nth-child(2) div[data-visualcompletion="ignore-late-mutation"]:has(video) > div > div {
+  position: static;
+  height: fit-content;
+}
+
+article[data-interactable="|click|"]:has(a[href*="/reel/"]) > div > div:nth-child(2) div[data-visualcompletion="ignore-late-mutation"]:has(video) > div {
+  padding-bottom: 0 !important;;
+}
+
+/* Compensate for moved header */
+article[data-interactable="|click|"]:has(a[href*="/reel/"]) {
+  margin-top: 12px;
+}
+
+/* Move header inside */
+article[data-interactable="|click|"]:has(a[href*="/reel/"]) > div > div:first-child {
+  position: absolute;
+  z-index: 2;
+  box-sizing: border-box;
+  width: 100vw;
+}
+
+/* Add backdrop */
+article[data-interactable="|click|"]:has(a[href*="/reel/"]) > div > div:first-child::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: -1;
+  width: 100vw;
+  background: linear-gradient(0deg,rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.65) 100%);
+  height: 6rem;
+}
 `
 
 ;(function () {
