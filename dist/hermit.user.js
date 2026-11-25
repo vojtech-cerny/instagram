@@ -2,7 +2,7 @@
 // @name         Hermit bundle
 // @description  Auto-generated bundle of 10 script(s). Do not edit by hand.
 // ==/UserScript==
-// Content hash: 7de4fdcecb
+// Content hash: 7786b680d6
 // Sources:
 //   - src/block-recommended.user.js
 //   - src/direct-layout.user.js
@@ -1273,6 +1273,7 @@ div[data-pagelet=IGDComposerForCannes] > div > div > div:last-child > * {
 
 div[data-pagelet="IGDComposerForCannes"] .xshg46c { 
   background-color: rgb(var(--ig-incoming-message-bubble));
+  border-color: transparent;
 }
 
 /* === UNIVERSAL: Add inset shadow === */
@@ -1307,6 +1308,46 @@ div[data-pagelet="IGDInboxHeaderOffMsys"] div:has(span:empty) {
 div.x1kmbdvd:has([aria-label="Pinned message icon"]) {
   background-color: rgb(var(--ig-primary-background));
   scale: 1 !important;
+}
+
+/* Fill reel full width */
+article[data-interactable="|click|"]:has(a[href*="/reel/"]) > div > div:nth-child(2) div[data-visualcompletion="ignore-late-mutation"]:has(video) > div > div {
+  position: static;
+  height: fit-content;
+}
+
+article[data-interactable="|click|"]:has(a[href*="/reel/"]) > div > div:nth-child(2) div[data-visualcompletion="ignore-late-mutation"]:has(video) > div {
+  padding-bottom: 0 !important;;
+}
+
+/* Compensate for moved header */
+article[data-interactable="|click|"]:has(a[href*="/reel/"]) {
+  margin-top: 12px;
+}
+
+/* Move header inside */
+article[data-interactable="|click|"]:has(a[href*="/reel/"]) > div > div:first-child {
+  position: absolute;
+  z-index: 2;
+  box-sizing: border-box;
+  width: 100vw;
+}
+
+/* Add backdrop */
+article[data-interactable="|click|"]:has(a[href*="/reel/"]) > div > div:first-child::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: -1;
+  width: 100vw;
+  background: linear-gradient(0deg,rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.65) 100%);
+  height: 6rem;
+}
+
+/* Remove follow(ed) button in posts header */
+article header ._aar2:has(button) {
+  display: none;
 }
 `
 
