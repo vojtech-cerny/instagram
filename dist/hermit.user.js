@@ -2,7 +2,7 @@
 // @name         Hermit bundle
 // @description  Auto-generated bundle of 10 script(s). Do not edit by hand.
 // ==/UserScript==
-// Content hash: 7786b680d6
+// Content hash: 9a450f66f2
 // Sources:
 //   - src/block-recommended.user.js
 //   - src/direct-layout.user.js
@@ -1331,6 +1331,11 @@ article[data-interactable="|click|"]:has(a[href*="/reel/"]) > div > div:first-ch
   z-index: 2;
   box-sizing: border-box;
   width: 100vw;
+}
+
+/* Font in header should be always white */
+article[data-interactable="|click|"]:has(a[href*="/reel/"]) > div > div:first-child * {
+    color: rgb(var(--web-always-white)) !important;
 }
 
 /* Add backdrop */
