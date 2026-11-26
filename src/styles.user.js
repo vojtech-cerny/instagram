@@ -314,6 +314,11 @@ article[data-interactable="|click|"]:has(a[href*="/reel/"]) > div > div:first-ch
   width: 100vw;
 }
 
+/* Font in header should be always white */
+article[data-interactable="|click|"]:has(a[href*="/reel/"]) > div > div:first-child * {
+    color: rgb(var(--web-always-white)) !important;
+}
+
 /* Add backdrop */
 article[data-interactable="|click|"]:has(a[href*="/reel/"]) > div > div:first-child::before {
   content: "";
