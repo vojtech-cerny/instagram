@@ -196,7 +196,7 @@ body:has(#splash-screen) #moje-ig-lista-kontejner {
 [data-pagelet="IGDInboxThreadListScrollableAreaPagelet"] [role="presentation"] li [role="button"] > div > div:first-child {
     width: 85px;
 }
-[data-pagelet="IGDInboxThreadListScrollableAreaPagelet"] [role="presentation"] li [role="button"] > div > div:first-child > div > div, [data-pagelet="IGDInboxThreadListScrollableAreaPagelet"] [role="presentation"] li [role="button"] > div > div:first-child > div > div > div {
+[data-pagelet="IGDInboxThreadListScrollableAreaPagelet"] [role="presentation"] li [role="button"] > div > div:first-child > div > div:last-child, [data-pagelet="IGDInboxThreadListScrollableAreaPagelet"] [role="presentation"] li [role="button"] > div > div:first-child > div > div > div {
     width: 100%;
     justify-content: center;
 }
