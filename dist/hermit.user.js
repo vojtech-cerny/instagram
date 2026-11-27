@@ -1,8 +1,11 @@
 // ==UserScript==
 // @name         Hermit bundle
 // @description  Auto-generated bundle of 10 script(s). Do not edit by hand.
+// @match        https://*/*
+// @grant        none
+// @run-at       document-idle
 // ==/UserScript==
-// Content hash: a7ee69164a
+// Content hash: 9e14f501ab
 // Sources:
 //   - src/block-recommended.user.js
 //   - src/direct-layout.user.js
@@ -664,253 +667,348 @@ const __bundleReady = (fn) =>
 
 // ===== pull to refresh  (src/pull-to-refresh.user.js) =====
 ;(function () {
+  if (!__bundleShouldRun([["^https://.*/.*$",""]], [])) return;
   const __main = function () {
     try {
 (function () {
   'use strict';
 
-  var PULL_THRESHOLD = 70; // px of pull needed to trigger a refresh
-  var MAX_PULL = 120; // px cap on how far <main> visually slides down
-  var RESISTANCE = 2.5; // higher = harder to pull (raw drag distance / RESISTANCE)
-  var HIDDEN_OFFSET = 50; // px above main's top edge where the indicator starts, hidden
-  var REVEAL_OFFSET = 16; // px below main's top edge where the indicator ends up at full pull
-  var SPINNER_SIZE = 32; // px
+  const DEFAULTS = {
+    threshold: 70,
+    maxPull: 120,
+    resistance: 2.5,
+    circleSize: 32,
+    strokeWidth: 2,
+    lineColor: '#181C1F',
+    lineGapRem: 0.5,
+    trackColor: '#555555',
+    progressColor: '#fff',
+    refreshDelay: 550,
+    onRefresh: () => window.location.reload(),
+  };
 
-  var mainEl = null;
-  var indicator = null; // fixed wrapper (positioning + opacity)
-  var spinner = null; // the ring element we rotate manually while pulling
-  var attached = false;
-  var touchStartY = null;
-  var pulling = false;
-  var refreshing = false;
-  var currentPull = 0;
-  var baseTop = 0;
-  var styleInjected = false;
+  const RULES = [
+    { match: '/', target: 'main' },
+    { match: '/direct/inbox/', target: '[data-pagelet="IGDInboxThreadListScrollableAreaPagelet"]' },
+  ];
 
-  function isHomeRoute() {
-    return location.pathname === '/';
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  const css = (el, styles) => Object.assign(el.style, styles);
+
+  function svgEl(tag, attrs) {
+    const node = document.createElementNS(SVG_NS, tag);
+    for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, value);
+    return node;
   }
 
-  function isAtTop(el) {
-    if (!el) return window.scrollY === 0;
-    var elScrollable = el.scrollHeight > el.clientHeight + 1;
-    return elScrollable ? el.scrollTop <= 0 : window.scrollY === 0;
-  }
-
-  function injectStyle() {
-    if (styleInjected) return;
-    styleInjected = true;
-    var style = document.createElement('style');
-    style.textContent =
-      '.ptr-indicator{position:fixed;left:50%;transform:translateX(-50%);' +
-      'pointer-events:none;opacity:0;z-index:0;}' +
-      '.ptr-spinner{width:' +
-      SPINNER_SIZE +
-      'px;padding:1.5px;aspect-ratio:1;border-radius:50%;' +
-      'background:rgb(var(--ig-primary-text, 0, 0, 0));' +
-      '--_m:conic-gradient(#0000 10%,#000),linear-gradient(#000 0 0) content-box;' +
-      '-webkit-mask:var(--_m);mask:var(--_m);' +
-      '-webkit-mask-composite:source-out;mask-composite:subtract;' +
-      'display:block;box-sizing:border-box;transform-origin:center;' +
-      'animation:ptr-spin 1s linear infinite;}' +
-      '@keyframes ptr-spin{to{transform:rotate(1turn);}}';
-    document.head.appendChild(style);
-  }
-
-  function ensureIndicator() {
-    injectStyle();
-    if (indicator && indicator.isConnected) return;
-
-    indicator = document.createElement('div');
-    indicator.className = 'ptr-indicator';
-
-    spinner = document.createElement('div');
-    spinner.className = 'ptr-spinner';
-    // Pause the CSS-driven spin so we can rotate it manually from pull
-    // distance instead, while dragging.
-    spinner.style.animation = 'none';
-
-    indicator.appendChild(spinner);
-    document.body.appendChild(indicator);
-
-    positionIndicator(0);
-    setRotation(0);
-  }
-
-  function setRotation(deg) {
-    if (spinner) spinner.style.transform = 'rotate(' + deg + 'deg)';
-  }
-
-  function positionIndicator(progress) {
-    if (!indicator) return;
-    var top = baseTop - HIDDEN_OFFSET + (HIDDEN_OFFSET + REVEAL_OFFSET) * progress;
-    indicator.style.top = top + 'px';
-    indicator.style.opacity = String(Math.min(progress, 1));
-  }
-
-  function updatePull(pullDistance) {
-    currentPull = pullDistance;
-    var progress = Math.min(pullDistance / PULL_THRESHOLD, 1); // for opacity/position, capped
-    var rotationProgress = pullDistance / PULL_THRESHOLD; // uncapped, keeps turning past 360° if overpulled
-    var visualPull = Math.min(pullDistance, MAX_PULL);
-
-    mainEl.style.transition = 'none';
-    mainEl.style.transform = 'translateY(' + visualPull + 'px)';
-
-    if (indicator) indicator.style.transition = 'none';
-    positionIndicator(progress);
-
-    if (spinner) spinner.style.transition = 'none';
-    setRotation(rotationProgress * 360);
-  }
-
-  function releaseBack() {
-    currentPull = 0;
-    if (mainEl) {
-      mainEl.style.transition = 'transform .25s ease';
-      mainEl.style.transform = 'translateY(0px)';
+  function matchesLocation(pattern, loc) {
+    if (typeof pattern === 'function') return !!pattern(loc);
+    if (pattern instanceof RegExp) return pattern.test(loc.pathname);
+    if (typeof pattern === 'string') {
+      return pattern.endsWith('*')
+        ? loc.pathname.startsWith(pattern.slice(0, -1))
+        : loc.pathname === pattern;
     }
-    if (indicator) {
-      indicator.style.transition = 'top .25s ease, opacity .2s ease';
-      positionIndicator(0);
-    }
-    if (spinner) {
-      spinner.style.transition = 'transform .25s ease';
-      setRotation(0);
-    }
+    return false;
   }
 
-  function showRefreshing() {
-    if (mainEl) {
-      mainEl.style.transition = 'transform .2s ease';
-      mainEl.style.transform = 'translateY(' + PULL_THRESHOLD + 'px)';
+  function resolveTargets({ target, all }) {
+    let result = null;
+    if (typeof target === 'function') result = target();
+    else if (typeof target === 'string') {
+      result = all ? document.querySelectorAll(target) : document.querySelector(target);
     }
-    if (indicator) {
-      indicator.style.transition = 'top .2s ease, opacity .2s ease';
-      positionIndicator(1);
-    }
-    if (spinner) {
-      // Hand control back to the real continuous CSS spin now that we're
-      // actually refreshing, instead of the manual pull-driven rotation.
-      spinner.style.transition = 'none';
-      spinner.style.transform = '';
-      spinner.style.animation = ''; // clears the inline "none" override
-    }
+    if (!result) return [];
+    const list = result instanceof Element ? [result] : Array.from(result);
+    return list.filter((el) => el instanceof Element && el.isConnected);
   }
 
-  function onTouchStart(e) {
-    if (refreshing || e.touches.length !== 1) return;
-    if (!isAtTop(mainEl)) {
-      touchStartY = null;
-      return;
-    }
-    touchStartY = e.touches[0].clientY;
-    pulling = true;
-    baseTop = mainEl.getBoundingClientRect().top;
-    ensureIndicator();
-  }
+  class PullToRefresh {
+    constructor(el, options) {
+      this.el = el;
+      this.o = options;
+      this.gap = options.lineGapRem * parseFloat(getComputedStyle(document.documentElement).fontSize);
 
-  function onTouchMove(e) {
-    if (!pulling || touchStartY === null || refreshing) return;
-    var delta = e.touches[0].clientY - touchStartY;
+      this.clip = null;
+      this.ring = null;
+      this.svg = null;
+      this.arc = null;
+      this.line = null;
+      this.spin = null;
+      this.resetTimer = null;
+      this.circumference = 0;
 
-    if (delta <= 0 || !isAtTop(mainEl)) {
-      pulling = false;
-      releaseBack();
-      return;
+      this.touchStartY = null;
+      this.pulling = false;
+      this.refreshing = false;
+      this.destroyed = false;
+      this.armed = false;
+      this.currentPull = 0;
+
+      this.attach();
     }
 
-    // Stop native rubber-band scrolling so our own indicator drives the pull.
-    e.preventDefault();
-    updatePull(delta / RESISTANCE);
-  }
-
-  function onTouchEnd() {
-    if (!pulling) {
-      touchStartY = null;
-      return;
+    attach() {
+      this.el.addEventListener('touchstart', this.onTouchStart, { passive: true });
+      this.el.addEventListener('touchmove', this.onTouchMove, { passive: false });
+      this.el.addEventListener('touchend', this.onTouchEnd, { passive: true });
+      this.el.addEventListener('touchcancel', this.onTouchEnd, { passive: true });
     }
-    pulling = false;
-    touchStartY = null;
-    if (!refreshing && currentPull >= PULL_THRESHOLD) {
-      triggerRefresh();
-    } else if (!refreshing) {
-      releaseBack();
+
+    destroy() {
+      this.destroyed = true;
+      clearTimeout(this.resetTimer);
+      this.stopSpin();
+      this.el.removeEventListener('touchstart', this.onTouchStart);
+      this.el.removeEventListener('touchmove', this.onTouchMove);
+      this.el.removeEventListener('touchend', this.onTouchEnd);
+      this.el.removeEventListener('touchcancel', this.onTouchEnd);
+      css(this.el, { transform: '', transition: '' });
+      this.clip?.remove();
+      this.clip = this.ring = this.svg = this.arc = this.line = null;
     }
-  }
 
-  function triggerRefresh() {
-    refreshing = true;
-    showRefreshing();
-    setTimeout(function () {
-      window.location.reload();
-    }, 550);
-  }
+    ensureIndicator() {
+      if (this.clip?.isConnected) return;
 
-  function attach() {
-    if (attached || !mainEl) return;
-    mainEl.addEventListener('touchstart', onTouchStart, { passive: true });
-    mainEl.addEventListener('touchmove', onTouchMove, { passive: false });
-    mainEl.addEventListener('touchend', onTouchEnd, { passive: true });
-    mainEl.addEventListener('touchcancel', onTouchEnd, { passive: true });
-    attached = true;
-  }
+      const { threshold, circleSize: size, strokeWidth, trackColor, progressColor, lineColor } = this.o;
+      const center = size / 2;
+      const radius = (size - strokeWidth) / 2;
+      this.circumference = 2 * Math.PI * radius;
 
-  function detach() {
-    if (!attached || !mainEl) return;
-    mainEl.removeEventListener('touchstart', onTouchStart);
-    mainEl.removeEventListener('touchmove', onTouchMove);
-    mainEl.removeEventListener('touchend', onTouchEnd);
-    mainEl.removeEventListener('touchcancel', onTouchEnd);
-    attached = false;
-    mainEl.style.transform = '';
-    mainEl.style.transition = '';
-    if (indicator && indicator.parentNode) indicator.parentNode.removeChild(indicator);
-    indicator = null;
-    spinner = null;
-  }
+      const circle = { cx: center, cy: center, r: radius, fill: 'none', 'stroke-width': strokeWidth };
+      const track = svgEl('circle', { ...circle, stroke: trackColor });
+      this.arc = svgEl('circle', {
+        ...circle,
+        stroke: progressColor,
+        transform: `rotate(-90 ${center} ${center})`,
+      });
+      this.arc.style.strokeDasharray = `${this.circumference}px`;
 
-  function evaluate() {
-    if (!isHomeRoute()) {
-      detach();
-      mainEl = null;
-      return;
+      this.svg = svgEl('svg', { width: size, height: size, viewBox: `0 0 ${size} ${size}` });
+      this.svg.style.display = 'block';
+      this.svg.append(track, this.arc);
+
+      this.ring = document.createElement('div');
+      css(this.ring, {
+        position: 'absolute',
+        top: `${(threshold - size) / 2}px`,
+        left: `calc(50% - ${center}px)`,
+        width: `${size}px`,
+        height: `${size}px`,
+      });
+      this.ring.append(this.svg);
+
+      this.line = document.createElement('div');
+      css(this.line, {
+        position: 'absolute',
+        left: '0px',
+        right: '0px',
+        bottom: '0px',
+        height: '1px',
+        background: lineColor,
+      });
+
+      this.clip = document.createElement('div');
+      css(this.clip, {
+        position: 'fixed',
+        height: '0px',
+        overflow: 'hidden',
+        pointerEvents: 'none',
+        zIndex: '1',
+      });
+      this.clip.append(this.ring, this.line);
+      document.body.append(this.clip);
+
+      this.setProgress(0);
     }
-    var found = document.querySelector('main');
-    if (found !== mainEl) {
-      detach();
-      mainEl = found;
-    }
-    if (mainEl) attach();
-  }
 
-  // --- SPA route-change detection ---
-  (function patchHistory() {
-    var fire = function () {
-      window.dispatchEvent(new Event('locationchange'));
+    placeIndicator() {
+      const rect = this.el.getBoundingClientRect();
+      const offsetY = new DOMMatrix(getComputedStyle(this.el).transform).m42;
+      css(this.clip, {
+        top: `${rect.top - offsetY}px`,
+        left: `${rect.left}px`,
+        width: `${rect.width}px`,
+      });
+    }
+
+    setProgress(progress) {
+      this.arc.style.strokeDashoffset = `${this.circumference * (1 - progress)}px`;
+    }
+
+    setArmed(armed) {
+      if (armed === this.armed) return;
+      this.armed = armed;
+      if (!armed) return;
+      this.ring.animate(
+        [{ transform: 'scale(1)' }, { transform: 'scale(1.25)' }, { transform: 'scale(1)' }],
+        { duration: 300, easing: 'ease-out' }
+      );
+    }
+
+    startSpin() {
+      this.spin = this.svg.animate(
+        [{ transform: 'rotate(0deg)' }, { transform: 'rotate(360deg)' }],
+        { duration: 1000, iterations: Infinity }
+      );
+    }
+
+    stopSpin() {
+      this.spin?.cancel();
+      this.spin = null;
+    }
+
+    isAtTop() {
+      const el = this.el;
+      const scrollable = el.scrollHeight > el.clientHeight + 1;
+      return scrollable ? el.scrollTop <= 0 : window.scrollY === 0;
+    }
+
+    updatePull(distance) {
+      const { threshold, maxPull } = this.o;
+      const visualPull = Math.min(distance, maxPull);
+      this.currentPull = distance;
+
+      css(this.el, { transition: 'none', transform: `translateY(${visualPull}px)` });
+      css(this.clip, { transition: 'none', height: `${Math.max(visualPull - this.gap, 0)}px` });
+
+      this.setProgress(Math.min(distance / threshold, 1));
+      this.setArmed(distance >= threshold);
+    }
+
+    releaseBack() {
+      this.currentPull = 0;
+      this.setArmed(false);
+      this.stopSpin();
+
+      css(this.el, { transition: 'transform .25s ease', transform: 'translateY(0px)' });
+      css(this.clip, { transition: 'height .25s ease', height: '0px' });
+
+      this.resetTimer = setTimeout(() => {
+        if (this.destroyed) return;
+        this.setProgress(0);
+      }, 250);
+    }
+
+    showRefreshing() {
+      const { threshold } = this.o;
+      css(this.el, { transition: 'transform .2s ease', transform: `translateY(${threshold}px)` });
+      css(this.clip, { transition: 'height .2s ease', height: `${threshold - this.gap}px` });
+      this.setProgress(0.25);
+      this.startSpin();
+    }
+
+    async triggerRefresh() {
+      this.refreshing = true;
+      this.showRefreshing();
+      await sleep(this.o.refreshDelay);
+      try {
+        await this.o.onRefresh(this.el);
+      } catch (err) {
+        console.error('[pull-to-refresh] onRefresh failed:', err);
+      }
+      if (this.destroyed) return;
+      this.refreshing = false;
+      this.releaseBack();
+    }
+
+    onTouchStart = (e) => {
+      if (this.refreshing || e.touches.length !== 1) return;
+      if (!this.isAtTop()) {
+        this.touchStartY = null;
+        return;
+      }
+      clearTimeout(this.resetTimer);
+      this.touchStartY = e.touches[0].clientY;
+      this.pulling = true;
+      this.ensureIndicator();
+      this.placeIndicator();
     };
-    var origPush = history.pushState;
-    history.pushState = function () {
-      var ret = origPush.apply(this, arguments);
-      fire();
-      return ret;
+
+    onTouchMove = (e) => {
+      if (!this.pulling || this.touchStartY === null || this.refreshing) return;
+      const delta = e.touches[0].clientY - this.touchStartY;
+
+      if (delta <= 0 || !this.isAtTop()) {
+        this.pulling = false;
+        this.releaseBack();
+        return;
+      }
+
+      e.preventDefault();
+      this.updatePull(delta / this.o.resistance);
     };
-    var origReplace = history.replaceState;
-    history.replaceState = function () {
-      var ret = origReplace.apply(this, arguments);
-      fire();
-      return ret;
+
+    onTouchEnd = () => {
+      const wasPulling = this.pulling;
+      this.pulling = false;
+      this.touchStartY = null;
+      if (!wasPulling || this.refreshing) return;
+
+      if (this.currentPull >= this.o.threshold) this.triggerRefresh();
+      else this.releaseBack();
     };
+  }
+
+  const controllers = new Map();
+
+  function sync() {
+    const wanted = new Map();
+    for (const rule of RULES) {
+      if (!matchesLocation(rule.match, window.location)) continue;
+      for (const el of resolveTargets(rule)) {
+        if (!wanted.has(el)) wanted.set(el, { ...DEFAULTS, ...rule });
+      }
+    }
+
+    for (const [el, controller] of controllers) {
+      if (!wanted.has(el)) {
+        controller.destroy();
+        controllers.delete(el);
+      }
+    }
+
+    for (const [el, options] of wanted) {
+      if (!controllers.has(el)) controllers.set(el, new PullToRefresh(el, options));
+    }
+  }
+
+  let scheduled = false;
+  function scheduleSync() {
+    if (scheduled) return;
+    scheduled = true;
+    requestAnimationFrame(() => {
+      scheduled = false;
+      sync();
+    });
+  }
+
+  function patchHistory() {
+    const fire = () => window.dispatchEvent(new Event('locationchange'));
+    for (const method of ['pushState', 'replaceState']) {
+      const original = history[method];
+      history[method] = function (...args) {
+        const result = original.apply(this, args);
+        fire();
+        return result;
+      };
+    }
     window.addEventListener('popstate', fire);
-  })();
+  }
 
-  window.addEventListener('locationchange', evaluate);
+  patchHistory();
+  window.addEventListener('locationchange', scheduleSync);
 
-  // Re-attach if <main> gets replaced by a re-render.
-  var mo = new MutationObserver(evaluate);
-  mo.observe(document.documentElement, { childList: true, subtree: true });
+  new MutationObserver(scheduleSync).observe(document.documentElement, {
+    childList: true,
+    subtree: true,
+  });
 
-  evaluate();
+  sync();
 })();
     } catch (e) { console.error("[bundle] " + "pull to refresh" + " failed:", e); }
   };
