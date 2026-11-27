@@ -343,9 +343,9 @@ article header ._aar2:has(button) {
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root, [data-pagelet="IGDMessagesList"] .x1k4qllp {
     --igd-thread-background-color: rgb(0, 0, 0);
-    --mwp-message-row-background: --mwp-message-row-background;
+    --mwp-message-row-background: var(--igd-thread-background-color) !important
   }
 }
 `
