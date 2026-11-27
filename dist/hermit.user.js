@@ -2,7 +2,7 @@
 // @name         Hermit bundle
 // @description  Auto-generated bundle of 10 script(s). Do not edit by hand.
 // ==/UserScript==
-// Content hash: d9f3fb4847
+// Content hash: a7ee69164a
 // Sources:
 //   - src/block-recommended.user.js
 //   - src/direct-layout.user.js
@@ -1362,9 +1362,9 @@ article header ._aar2:has(button) {
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root, [data-pagelet="IGDMessagesList"] .x1k4qllp {
     --igd-thread-background-color: rgb(0, 0, 0);
-    --mwp-message-row-background: --mwp-message-row-background;
+    --mwp-message-row-background: var(--igd-thread-background-color) !important
   }
 }
 `
