@@ -244,7 +244,13 @@ div[data-pagelet="IGDComposerForCannes"] {
 }
 
 div[data-pagelet="IGDComposerForCannes"] {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0) 49%, rgb(var(--ig-primary-background)) 50%, rgb(var(--ig-primary-background)));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0) 49%,
+    var(--igd-thread-background-color, rgb(var(--ig-primary-background))) 50%,
+    var(--igd-thread-background-color, rgb(var(--ig-primary-background))) 100%
+  );
 }
 
 div[data-pagelet=IGDComposerForCannes] > div > div > div:last-child > * {
@@ -334,6 +340,13 @@ article[data-interactable="|click|"]:has(a[href*="/reel/"]) > div > div:first-ch
 /* Remove follow(ed) button in posts header */
 article header ._aar2:has(button) {
   display: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --igd-thread-background-color: rgb(0, 0, 0);
+    --mwp-message-row-background: --mwp-message-row-background;
+  }
 }
 `
 
