@@ -5,7 +5,7 @@
 // @grant        none
 // @run-at       document-idle
 // ==/UserScript==
-// Content hash: 9e14f501ab
+// Content hash: fd000f9b49
 // Sources:
 //   - src/block-recommended.user.js
 //   - src/direct-layout.user.js
@@ -676,13 +676,14 @@ const __bundleReady = (fn) =>
   const DEFAULTS = {
     threshold: 70,
     maxPull: 120,
-    resistance: 2.5,
+    resistance: 2,
     circleSize: 32,
     strokeWidth: 2,
-    lineColor: '#181C1F',
     lineGapRem: 0.5,
-    trackColor: '#555555',
-    progressColor: '#fff',
+    colors: {
+      light: { line: '#fff', track: '#EFEFEF', progress: '#C7C7C7' },
+      dark: { line: '#181C1F', track: '#555555', progress: '#fff' },
+    },
     refreshDelay: 550,
     onRefresh: () => window.location.reload(),
   };
@@ -690,6 +691,7 @@ const __bundleReady = (fn) =>
   const RULES = [
     { match: '/', target: 'main' },
     { match: '/direct/inbox/', target: '[data-pagelet="IGDInboxThreadListScrollableAreaPagelet"]' },
+    { match: '/explore/', target: 'main:has(nav) > div' },
   ];
 
   const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -697,6 +699,22 @@ const __bundleReady = (fn) =>
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
   const css = (el, styles) => Object.assign(el.style, styles);
+
+  function isScrollable(node) {
+    const { overflowY } = getComputedStyle(node);
+    return /(auto|scroll|overlay)/.test(overflowY) && node.scrollHeight > node.clientHeight;
+  }
+
+  function isDarkAround(el) {
+    for (let node = el; node instanceof Element; node = node.parentElement) {
+      const color = getComputedStyle(node).backgroundColor;
+      if (!color.startsWith('rgb')) continue;
+      const [r, g, b, a = 1] = color.match(/[\d.]+/g).map(Number);
+      if (a < 0.1) continue;
+      return (0.299 * r + 0.587 * g + 0.114 * b) / 255 < 0.5;
+    }
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
 
   function svgEl(tag, attrs) {
     const node = document.createElementNS(SVG_NS, tag);
@@ -736,8 +754,10 @@ const __bundleReady = (fn) =>
       this.ring = null;
       this.svg = null;
       this.arc = null;
+      this.track = null;
       this.line = null;
       this.spin = null;
+      this.scrollers = [];
       this.resetTimer = null;
       this.circumference = 0;
 
@@ -768,29 +788,28 @@ const __bundleReady = (fn) =>
       this.el.removeEventListener('touchcancel', this.onTouchEnd);
       css(this.el, { transform: '', transition: '' });
       this.clip?.remove();
-      this.clip = this.ring = this.svg = this.arc = this.line = null;
+      this.clip = this.ring = this.svg = this.track = this.arc = this.line = null;
     }
 
     ensureIndicator() {
       if (this.clip?.isConnected) return;
 
-      const { threshold, circleSize: size, strokeWidth, trackColor, progressColor, lineColor } = this.o;
+      const { threshold, circleSize: size, strokeWidth } = this.o;
       const center = size / 2;
       const radius = (size - strokeWidth) / 2;
       this.circumference = 2 * Math.PI * radius;
 
       const circle = { cx: center, cy: center, r: radius, fill: 'none', 'stroke-width': strokeWidth };
-      const track = svgEl('circle', { ...circle, stroke: trackColor });
+      this.track = svgEl('circle', circle);
       this.arc = svgEl('circle', {
         ...circle,
-        stroke: progressColor,
         transform: `rotate(-90 ${center} ${center})`,
       });
       this.arc.style.strokeDasharray = `${this.circumference}px`;
 
       this.svg = svgEl('svg', { width: size, height: size, viewBox: `0 0 ${size} ${size}` });
       this.svg.style.display = 'block';
-      this.svg.append(track, this.arc);
+      this.svg.append(this.track, this.arc);
 
       this.ring = document.createElement('div');
       css(this.ring, {
@@ -809,7 +828,6 @@ const __bundleReady = (fn) =>
         right: '0px',
         bottom: '0px',
         height: '1px',
-        background: lineColor,
       });
 
       this.clip = document.createElement('div');
@@ -862,10 +880,26 @@ const __bundleReady = (fn) =>
       this.spin = null;
     }
 
+    applyTheme() {
+      const { light, dark } = this.o.colors;
+      const palette = isDarkAround(this.el) ? dark : light;
+      this.track.setAttribute('stroke', palette.track);
+      this.arc.setAttribute('stroke', palette.progress);
+      this.line.style.background = palette.line;
+    }
+
+    collectScrollers(node) {
+      const scrollers = [];
+      for (let current = node; current instanceof Element; current = current.parentElement) {
+        if (isScrollable(current)) scrollers.push(current);
+      }
+      const root = document.scrollingElement;
+      if (root && !scrollers.includes(root)) scrollers.push(root);
+      return scrollers;
+    }
+
     isAtTop() {
-      const el = this.el;
-      const scrollable = el.scrollHeight > el.clientHeight + 1;
-      return scrollable ? el.scrollTop <= 0 : window.scrollY === 0;
+      return this.scrollers.every((scroller) => scroller.scrollTop <= 0);
     }
 
     updatePull(distance) {
@@ -918,6 +952,7 @@ const __bundleReady = (fn) =>
 
     onTouchStart = (e) => {
       if (this.refreshing || e.touches.length !== 1) return;
+      this.scrollers = this.collectScrollers(e.target);
       if (!this.isAtTop()) {
         this.touchStartY = null;
         return;
@@ -926,6 +961,7 @@ const __bundleReady = (fn) =>
       this.touchStartY = e.touches[0].clientY;
       this.pulling = true;
       this.ensureIndicator();
+      this.applyTheme();
       this.placeIndicator();
     };
 
@@ -1464,6 +1500,28 @@ article header ._aar2:has(button) {
     --igd-thread-background-color: rgb(0, 0, 0);
     --mwp-message-row-background: var(--igd-thread-background-color) !important
   }
+}
+
+/* EXPLORE */
+
+main nav:has([type="search"]) {
+  margin-top: -12px;
+  z-index: 2;
+}
+
+main:has(nav [type="search"]) {
+  overflow-x: hidden;
+}
+
+/* HIDE ALL SCROLLBARS */
+
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
 }
 `
 
