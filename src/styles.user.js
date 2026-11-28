@@ -359,6 +359,17 @@ main nav:has([type="search"]) {
 main:has(nav [type="search"]) {
   overflow-x: hidden;
 }
+
+/* HIDE ALL SCROLLBARS */
+
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
+}
 `
 
 ;(function () {
