@@ -348,6 +348,17 @@ article header ._aar2:has(button) {
     --mwp-message-row-background: var(--igd-thread-background-color) !important
   }
 }
+
+/* EXPLORE */
+
+main nav:has([type="search"]) {
+  margin-top: -12px;
+  z-index: 2;
+}
+
+main:has(nav [type="search"]) {
+  overflow-x: hidden;
+}
 `
 
 ;(function () {
